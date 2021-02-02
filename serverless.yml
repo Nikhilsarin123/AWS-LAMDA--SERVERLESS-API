@@ -1,0 +1,77 @@
+
+service: ServerlessCrud
+
+custom:
+  settings:
+    POSTS_TABLE: posts    //table name
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-2  //the region you want your aws to make all the resources
+  environment: ${self:custom.settings}
+  iamRoleStatements: //AWS iam user alloted permission and roles in dynamodb or you can give the adminstrative permission as well for testing.
+   - Effect: "Allow"
+     Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+     Resource:
+      - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.settings.POSTS_TABLE}"
+
+functions: 
+  createPost: //This is first function Lamda API for Creating a User.           
+    handler: handler.createUser  //function call using handler 
+    events:
+    - http:
+        path: /post
+        method: post
+  getAllPosts: //This is second function Lamda API for getting all the User.
+    handler: handler.getAllUser 
+    events:
+    - http:
+        path: /posts
+        method: get
+  getPosts: //This is Third function Lamda API for getting all the User according to Specific need Ex(if we want top 3 user then we will use this api).
+    handler: handler.getUser 
+    events:
+    - http:
+        path: /posts/{number}
+        method: get
+  getPost: //This is forth function Lamda API  for getting the single user according to id
+    handler: handler.getSingleUser 
+    events:
+    - http:
+        path: /post/{id}
+        method: get
+  updatePost:  //This is fifth function Lamda API  for getting the single user according to id
+    handler: handler.updateUser
+    events:
+    - http:
+        path: /post/{id}
+        method: put
+  deletePost: //This is sixth function Lamda API  for getting the single user according to id
+    handler: handler.deleteUser 
+    events:
+    - http:
+        path: /post/{id}
+        method: delete
+
+resources:
+  Resources:
+    PostsTable:
+      Type: AWS::DynamoDB::Table // making dynomo db connection and model
+      Properties:
+        AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+        KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.settings.POSTS_TABLE}
